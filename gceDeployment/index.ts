@@ -3,6 +3,7 @@ import * as gcp from "@pulumi/gcp";
 import * as yaml from 'js-yaml';
 
 const config = new pulumi.Config('gceDeployment');
+const gcpConfig = new pulumi.Config('gcp');
 
 let labelsObject;
 try {
@@ -12,14 +13,6 @@ try {
   }
 } catch (err) {
   throw new Error('Could not parse labels config object');
-}
-
-// "Zone" is the more specific part of a region
-// e.g. "us-central1-a" is the Zone and "us-central1" is the Region.
-// The Zone is passed in as the "labels.region" input
-let zone;
-if (labelsObject?.region) {
-  zone = labelsObject.region;
 }
 
 const vpcName = labelsObject?.vpc;
@@ -45,10 +38,14 @@ const env = Object.entries(environment || {}).map(([key, value]) => ({
 const deploymentName = `${namespace}-${name.slice(-40)}`;
 
 const container = {
-  image: config.require('image'),
-  args: typeof entrypoint === 'string' ? entrypoint.split(' ') : entrypoint,
-  command: typeof command === 'string' ? command.split(' ') : command,
-  env
+  spec: {
+    containers: [{
+      image: config.require('image'),
+      args: typeof entrypoint === 'string' ? entrypoint.split(' ') : entrypoint,
+      command: typeof command === 'string' ? command.split(' ') : command,
+      env
+    }]
+  }
 };
 
 const computeImage = await gcp.compute.getImage({
@@ -61,6 +58,7 @@ const _gceDeploymentService = new gcp.projects.Service('gce-deployment', {
   disableOnDestroy: false,
 });
 
+const zone = labelsObject.zone;
 const deployment = new gcp.compute.Instance('gce-deployment', {
   name: deploymentName,
   zone,
@@ -86,5 +84,15 @@ const deployment = new gcp.compute.Instance('gce-deployment', {
   dependsOn: [_gceDeploymentService]
 });
 
-export const id = deployment.id;
+const instanceGroup = new gcp.compute.InstanceGroup('gce-deployment-instance-group',  {
+  name: deploymentName,
+  instances: [deployment.selfLink],
+  zone,
+  namedPorts: [{
+    name: 'http',
+    port: 3000
+  }]
+});
+
+export const id = instanceGroup.selfLink; 
 export const labels = labelsObject;

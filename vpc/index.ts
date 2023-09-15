@@ -68,5 +68,5 @@ const _vpcAccessConnector = new gcp.vpcaccess.Connector(`vpc-access-connector`, 
 
 export const id = vpcNetwork.id;
 export const name = vpcNetwork.name;
-export const region = config.get('region');
+export const region = gcp_region;
 export const description = vpcNetwork.description;

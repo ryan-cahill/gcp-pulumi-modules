@@ -22,8 +22,12 @@ config:
   password:
     type: string
 
-# TODO: create the compute.googleapis.com ProjectService?
 resources:
+  project:
+    type: gcp:projects:Service
+    properties:
+      disableOnDestroy: false
+      service: compute.googleapis.com
   instance:
     type: gcp:sql:DatabaseInstance
     properties:

@@ -25,7 +25,7 @@ return await Deployment.RunAsync(() =>
     var dnsName = managedZone.Apply(getManagedZoneResult => getManagedZoneResult.DnsName);
     var managedZoneName = managedZone.Apply(getManagedZoneResult => getManagedZoneResult.Name);
 
-    string subdomain = config.Require("subdomain"); // TODO: use require instead of get in other modules
+    string subdomain = config.Require("subdomain");
     string name = subdomain.EndsWith('.') ? subdomain : $"{subdomain}.";
 
     var dnsRecordSetArgs = new RecordSetArgs {

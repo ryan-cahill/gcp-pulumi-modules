@@ -139,5 +139,5 @@ for (const service of servicesObject) {
   }
 }
 
-export const id = firstDeployment?.id;;
+export const id = firstDeployment?.id;
 export const labels = labelsOutput;

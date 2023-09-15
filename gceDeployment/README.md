@@ -7,5 +7,5 @@ pulumi config set gcp:region us-central1 --stack dev
 pulumi config set name test-deployment --stack dev
 pulumi config set image ryancahill444/hello-world --stack dev
 pulumi config set services '[{"port":3000,"protocol":"http","id":"test-id"}]' --stack dev
-pulumi config set labels '{"vpc":"ryan","region":"us-central1-a"}' --stack dev
+pulumi config set labels '{"vpc":"ryan","zone":"us-central1-a"}' --stack dev
 ```

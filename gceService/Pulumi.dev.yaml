@@ -5,7 +5,7 @@ config:
   gceService:namespace: test-service
   gceService:password: dsklandjs98dsc
   gceService:strategy: gce
-  gceService:target_deployment: test-deployment
+  gceService:target_deployment: https://www.googleapis.com/compute/beta/projects/permanent-environment-testing/zones/us-central1-a/instanceGroups/ns-test-deployment
   gceService:target_port: "3000"
   gceService:target_protocol: http
   gceService:username: architect

@@ -18,11 +18,11 @@ func main() {
 			DisableOnDestroy: pulumi.Bool(false),
 		})
 
-		zoneName := strings.ReplaceAll(conf.Get("name"), ".", "-")
+		zoneName := strings.ReplaceAll(conf.Require("name"), ".", "-")
 		zoneName = zoneName[:len(zoneName)-1]
 
 		managedZone, err := dns.NewManagedZone(ctx, zoneName, &dns.ManagedZoneArgs{
-			DnsName: pulumi.String(conf.Get("name")),
+			DnsName: pulumi.String(conf.Require("name")),
 		},
 			pulumi.DependsOn([]pulumi.Resource{projectService}),
 		)

@@ -4,7 +4,7 @@ import uuid
 
 config = pulumi.Config()
 
-project = gcp.projects.Service("database-service",
+project_service = gcp.projects.Service("database-service",
                                disable_on_destroy=False,
                                service="sqladmin.googleapis.com")
 
@@ -17,8 +17,8 @@ sql_user = gcp.sql.User("user",
                         name=config.require("username"), 
                         password=password.hex, 
                         instance=instance_name,
-                        deletion_policy="ABANDON")
-                        # TODO: add depends on project service
+                        deletion_policy="ABANDON", 
+                        opts=pulumi.ResourceOptions(depends_on=[project_service]))
 
 pulumi.export("id", sql_user.name)
 pulumi.export("username", sql_user.name)

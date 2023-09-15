@@ -10,11 +10,12 @@ const namespace = config.require('namespace').substring(0, 20);
 // Max length for resource names is ~60 characters
 const serviceName = `${namespace}--${configName}`;
 
-const servicePort = config.get('target_port') || 80;
+const defaultServicePort = '80';
+const servicePort = config.get('target_port') || defaultServicePort;
 const deploymentName = config.require('target_deployment').replace(/\//g, '-');
 let targetProtocol = config.get('target_protocol');
 if (!targetProtocol) {
-  if (servicePort === 80) {
+  if (servicePort === defaultServicePort) {
     targetProtocol = 'http';
   } else {
     targetProtocol = 'https';
@@ -40,11 +41,18 @@ const gceName = `${namespace}-${deploymentName.slice(-40)}`;
 const vpcName = labelsObject.vpc;
 
 const backend = new gcp.compute.Firewall('service-firewall', {
-  name: `${gceName}-firewall-${servicePort}`,
-  allows: [{ protocol: 'tcp', ports: [`${servicePort}`] }],
+  name: `${gceName.substring(0, 48)}-firewall-${servicePort}`.toLowerCase(), // TODO: get rid of all of this substring and lowercase nonsense and replace it with uuids
+  allows: [{ 
+    protocol: 'tcp', 
+    ports: [
+      `${servicePort}`,
+       // '22', enables ssh
+       '80' 
+      ]  
+  }],
   network: vpcName,
-  targetTags: [gceName],
-  sourceRanges: ['10.0.0.0/8'],
+  // targetTags: [gceName.toLowerCase()], // TODO: replace? removed to enable ssh
+  sourceRanges: ['0.0.0.0/0'], // TODO: replace/tighten? removed/edited to enable ssh
 });
 
 // Internal host names: https://cloud.google.com/compute/docs/internal-dns#about_internal_dns
@@ -56,7 +64,24 @@ if (config.get('username') && config.get('password')) {
   serviceUrl = `${targetProtocol}://${serviceHost}:${servicePort}`;
 }
 
-export const id = `${gceName}--${servicePort}`;
+const healthCheck = new gcp.compute.HealthCheck('health-check', {
+  name: config.require('name'), 
+  checkIntervalSec: 1,
+  httpHealthCheck: {
+      port: parseInt(servicePort),
+  },
+  timeoutSec: 1,
+});
+
+const backendServiceNameSplit = config.require('target_deployment').split('/');
+const backendServiceName = backendServiceNameSplit[backendServiceNameSplit.length - 1];
+const backendService = new gcp.compute.BackendService('backend-service', {
+  name: backendServiceName,
+  backends: [{ group: config.require('target_deployment') }],
+  healthChecks: healthCheck.selfLink,
+});
+
+export const id = backendService.selfLink;
 export const protocol = targetProtocol;
 export const host = serviceHost;
 export const port = servicePort;
