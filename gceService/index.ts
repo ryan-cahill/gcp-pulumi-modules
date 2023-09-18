@@ -41,7 +41,7 @@ const gceName = `${namespace}-${deploymentName.slice(-40)}`;
 const vpcName = labelsObject.vpc;
 
 const backend = new gcp.compute.Firewall('service-firewall', {
-  name: `${gceName.substring(0, 48)}-firewall-${servicePort}`.toLowerCase(), // TODO: get rid of all of this substring and lowercase nonsense and replace it with uuids
+  name: `${gceName.substring(0, 48)}-firewall-${servicePort}`.toLowerCase(),
   allows: [{ 
     protocol: 'tcp', 
     ports: [
