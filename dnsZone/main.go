@@ -22,6 +22,7 @@ func main() {
 		zoneName = zoneName[:len(zoneName)-1]
 
 		managedZone, err := dns.NewManagedZone(ctx, zoneName, &dns.ManagedZoneArgs{
+			Name:    pulumi.String(zoneName),
 			DnsName: pulumi.String(conf.Require("name")),
 		},
 			pulumi.DependsOn([]pulumi.Resource{projectService}),

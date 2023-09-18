@@ -18,7 +18,7 @@ return await Deployment.RunAsync(() =>
 
     string dnsZoneName = config.Require("dnsZone").Replace('.', '-');
 
-    var dnsManagedZoneArgs = new GetManagedZoneInvokeArgs { // TODO: does this need to be done, or at the inputs sufficient?
+    var dnsManagedZoneArgs = new GetManagedZoneInvokeArgs {
         Name = dnsZoneName
     };
     var managedZone = GetManagedZone.Invoke(dnsManagedZoneArgs);
@@ -39,8 +39,8 @@ return await Deployment.RunAsync(() =>
 
     return new Dictionary<string, object?>
     {
-        ["id"] = dnsRecordSet.Name.Apply(s => s), // TODO: remove applies?
-        ["name"] = dnsRecordSet.Name.Apply(s => s),
+        ["id"] = dnsRecordSet.Name,
+        ["name"] = dnsRecordSet.Name,
         ["managedZone"] = dnsRecordSet.ManagedZone,
         ["recordType"] = dnsRecordSet.Type,
         ["data"] = dnsRecordSet.Rrdatas

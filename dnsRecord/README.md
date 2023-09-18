@@ -6,7 +6,7 @@ pulumi config set gcp:credentials /home/ryan/Downloads/permanent-environment-tes
 pulumi config set gcp:region us-central1 --stack dev
 pulumi config set name test --stack dev
 pulumi config set subdomain test --stack dev
-pulumi config set dnsZone test-dns-zone-6e5b201 --stack dev
+pulumi config set dnsZone test-dns-zone --stack dev
 pulumi config set recordType A --stack dev
 pulumi config set content 8.8.8.8 --stack dev
 ```
