@@ -22,41 +22,11 @@ if (!targetProtocol) {
   }
 }
 
-let labelsObject;
-try {
-  const labels = config.get('labels');
-  if (labels) {
-    labelsObject = JSON.parse(labels);
-  }
-} catch (err) {
-  throw new Error('Could not parse labels config object');
-}
-let zone = '';
-if (labelsObject) {
-  zone = labelsObject.region;
-}
-
 // This deployment is a GCE instance, so we need to set firewall rules that allow routing to it
 const gceName = `${namespace}-${deploymentName.slice(-40)}`;
-const vpcName = labelsObject.vpc;
-
-const backend = new gcp.compute.Firewall('service-firewall', {
-  name: `${gceName.substring(0, 48)}-firewall-${servicePort}`.toLowerCase(),
-  allows: [{ 
-    protocol: 'tcp', 
-    ports: [
-      `${servicePort}`,
-       // '22', enables ssh
-       '80' 
-      ]  
-  }],
-  network: vpcName,
-  // targetTags: [gceName.toLowerCase()], // TODO: replace? removed to enable ssh
-  sourceRanges: ['0.0.0.0/0'], // TODO: replace/tighten? removed/edited to enable ssh
-});
 
 // Internal host names: https://cloud.google.com/compute/docs/internal-dns#about_internal_dns
-const serviceHost = `${gceName}.${zone}.c.${gcpConfig.require('project')}.internal`;
+const serviceHost = `${gceName}.${config.require('zone')}.c.${gcpConfig.require('project')}.internal`;
 let serviceUrl = '';
 if (config.get('username') && config.get('password')) {
   serviceUrl = `${targetProtocol}://${config.require('username')}:${config.require('password')}@${serviceHost}:${servicePort}`;
@@ -79,6 +49,19 @@ const backendService = new gcp.compute.BackendService('backend-service', {
   name: backendServiceName,
   backends: [{ group: config.require('target_deployment') }],
   healthChecks: healthCheck.selfLink,
+});
+
+const vpcName = config.require('vpc');
+const firewall = new gcp.compute.Firewall('service-firewall', {
+  name: `${gceName.substring(0, 48)}-firewall-${servicePort}`.toLowerCase(),
+  direction: 'INGRESS',
+  allows: [{ 
+    protocol: 'tcp', 
+    ports: [`${servicePort}`, '80']
+  }],
+  network: vpcName,
+  targetTags: [backendServiceName], 
+  sourceRanges: ['0.0.0.0/0'], // TODO: replace/tighten? removed/edited to enable ssh. needs to be the ip of the gateway or something similar
 });
 
 export const id = backendService.selfLink;

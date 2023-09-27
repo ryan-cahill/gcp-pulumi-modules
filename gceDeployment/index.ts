@@ -3,19 +3,7 @@ import * as gcp from "@pulumi/gcp";
 import * as yaml from 'js-yaml';
 
 const config = new pulumi.Config('gceDeployment');
-const gcpConfig = new pulumi.Config('gcp');
 
-let labelsObject;
-try {
-  const labels = config.get('labels');
-  if (labels) {
-    labelsObject = JSON.parse(labels);
-  }
-} catch (err) {
-  throw new Error('Could not parse labels config object');
-}
-
-const vpcName = labelsObject?.vpc;
 const namespace = (config.get('namespace') || 'ns').substring(0, 20);
 const name = config.require('name').replace(/\//g, '-');
 
@@ -58,12 +46,13 @@ const _gceDeploymentService = new gcp.projects.Service('gce-deployment', {
   disableOnDestroy: false,
 });
 
-const zone = labelsObject.zone;
+const vpcName = config.require('vpc');
+const zone = config.require('zone');
 const deployment = new gcp.compute.Instance('gce-deployment', {
   name: deploymentName,
   zone,
   tags: [deploymentName],
-  machineType: 'e2-micro',
+  machineType: config.require('instanceType'),
   bootDisk: {
     initializeParams: {
       image: computeImage.selfLink
@@ -89,10 +78,10 @@ const instanceGroup = new gcp.compute.InstanceGroup('gce-deployment-instance-gro
   instances: [deployment.selfLink],
   zone,
   namedPorts: [{
-    name: 'http',
-    port: 3000
+    name: config.require('protocol'),
+    port: parseInt(config.require('port'))
   }]
 });
 
 export const id = instanceGroup.selfLink; 
-export const labels = labelsObject;
+// export const labels = labelsObject;
