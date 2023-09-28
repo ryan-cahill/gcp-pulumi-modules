@@ -38,7 +38,7 @@ const healthCheck = new gcp.compute.HealthCheck('health-check', {
   name: config.require('name'), 
   checkIntervalSec: 1,
   httpHealthCheck: {
-      port: parseInt(servicePort),
+    port: parseInt(servicePort),
   },
   timeoutSec: 1,
 });

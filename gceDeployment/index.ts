@@ -9,7 +9,6 @@ const name = config.require('name').replace(/\//g, '-');
 
 const entrypoint = config.get('entrypoint');
 const command = config.get('command');
-
 let environment;
 try {
   if (config.get('environment')) {
@@ -22,8 +21,6 @@ const env = Object.entries(environment || {}).map(([key, value]) => ({
   name: key,
   value: String(value),
 }));
-
-const deploymentName = `${namespace}-${name.slice(-40)}`;
 
 const container = {
   spec: {
@@ -46,6 +43,7 @@ const _gceDeploymentService = new gcp.projects.Service('gce-deployment', {
   disableOnDestroy: false,
 });
 
+const deploymentName = `${namespace}-${name}`;
 const vpcName = config.require('vpc');
 const zone = config.require('zone');
 const deployment = new gcp.compute.Instance('gce-deployment', {
@@ -73,15 +71,65 @@ const deployment = new gcp.compute.Instance('gce-deployment', {
   dependsOn: [_gceDeploymentService]
 });
 
+const protocol = config.require('protocol');
+const servicePort = config.require('port');
 const instanceGroup = new gcp.compute.InstanceGroup('gce-deployment-instance-group',  {
   name: deploymentName,
   instances: [deployment.selfLink],
   zone,
   namedPorts: [{
-    name: config.require('protocol'),
-    port: parseInt(config.require('port'))
+    name: protocol,
+    port: parseInt(servicePort)
   }]
 });
 
-export const id = instanceGroup.selfLink; 
-// export const labels = labelsObject;
+const healthCheck = new gcp.compute.HealthCheck('health-check', {
+  name, 
+  checkIntervalSec: 1,
+  httpHealthCheck: {
+    port: parseInt(servicePort),
+  },
+  timeoutSec: 1,
+});
+
+const backendService = new gcp.compute.BackendService('backend-service', {
+  name,
+  backends: [{ group: instanceGroup.selfLink }],
+  healthChecks: healthCheck.selfLink,
+});
+
+const https_paths = new gcp.compute.URLMap('service-https-url-map', {
+  name,
+  defaultService: backendService.selfLink,
+});
+
+const http_proxy = new gcp.compute.TargetHttpProxy('load-balancer-http-proxy', {
+  name,
+  urlMap: https_paths.selfLink,
+});
+
+const ipAddress = new gcp.compute.GlobalAddress('load-balancer-ipaddress', {
+  addressType: 'EXTERNAL',
+});
+
+new gcp.compute.GlobalForwardingRule('load-balancer-http-forwarding-rule', {
+  name,
+  target: http_proxy.selfLink,
+  ipAddress: ipAddress.address,
+  portRange: '80',
+  loadBalancingScheme: 'EXTERNAL', 
+});
+
+const firewall = new gcp.compute.Firewall('service-firewall', {
+  name,
+  direction: 'INGRESS',
+  allows: [{ 
+    protocol: 'tcp', 
+    ports: [`${servicePort}`, '80']
+  }],
+  network: vpcName,
+  targetTags: [deployment.name], 
+  sourceRanges: ['0.0.0.0/0'], // TODO: replace/tighten? removed/edited to enable ssh. needs to be the ip of the gateway or something similar
+});
+
+export const id = ipAddress.address;
